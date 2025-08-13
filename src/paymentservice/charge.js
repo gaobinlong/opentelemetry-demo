@@ -1,6 +1,6 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
-const {context, propagation, trace, metrics} = require('@opentelemetry/api');
+const { context, propagation, trace, metrics } = require('@opentelemetry/api');
 const cardValidator = require('simple-card-validator');
 const { v4: uuidv4 } = require('uuid');
 
@@ -9,7 +9,7 @@ const tracer = trace.getTracer('paymentservice');
 const meter = metrics.getMeter('paymentservice');
 const transactionsCounter = meter.createCounter('app.payment.transactions')
 
-module.exports.charge = request => {
+module.exports.charge = async request => {
   const span = tracer.startSpan('charge');
 
   const {
@@ -50,10 +50,15 @@ module.exports.charge = request => {
     span.setAttribute('app.payment.charged', true);
   }
 
-  span.end();
-
   const { units, nanos, currencyCode } = request.amount;
-  logger.info({transactionId, cardType, lastFourDigits, amount: { units, nanos, currencyCode }}, "Transaction complete.");
-  transactionsCounter.add(1, {"app.payment.currency": currencyCode})
+
+  if (units > 10000) {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    logger.info('curreny amount is too big, waiting for fraud detection...');
+  }
+
+  span.end();
+  logger.info({ transactionId, cardType, lastFourDigits, amount: { units, nanos, currencyCode } }, "Transaction complete.");
+  transactionsCounter.add(1, { "app.payment.currency": currencyCode })
   return { transactionId }
 }
