@@ -295,7 +295,6 @@ func (cs *checkout) PlaceOrder(ctx context.Context, req *pb.PlaceOrderRequest) (
 		attribute.String("app.user.id", req.UserId),
 		attribute.String("app.user.currency", req.UserCurrency),
 	)
-	//log.Infof("test, spanId:%q, traceId: %q", span.SpanContext().SpanID().String(), span.SpanContext().TraceID().String())
 	logger.LogAttrs(ctx, slog.LevelInfo, "[PlaceOrder]", slog.String("user_id", req.UserId), slog.String("user_currency", req.UserCurrency))
 
 	var err error
@@ -309,6 +308,13 @@ func (cs *checkout) PlaceOrder(ctx context.Context, req *pb.PlaceOrderRequest) (
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to generate order uuid")
 	}
+
+	logger.LogAttrs(
+		ctx,
+		slog.LevelInfo, fmt.Sprintf("order placement initiated - processing user request, order_id: %s", orderID.String()),
+		slog.String("user_id", req.UserId),
+		slog.String("user_currency", req.UserCurrency),
+	)
 
 	prep, err := cs.prepareOrderItemsAndShippingQuoteFromCart(ctx, req.UserId, req.UserCurrency, req.Address)
 	if err != nil {
@@ -337,8 +343,8 @@ func (cs *checkout) PlaceOrder(ctx context.Context, req *pb.PlaceOrderRequest) (
 		trace.WithAttributes(attribute.String("app.payment.transaction.id", txID)))
 	logger.LogAttrs(
 		ctx,
-		slog.LevelInfo, "payment went through",
-		slog.String("transaction_id", txID),
+		slog.LevelInfo, fmt.Sprintf("payment processing completed successfully - card charged, order_id: %s", orderID.String()),
+		slog.String("payment_transaction_id", txID),
 	)
 
 	shippingTrackingID, err := cs.shipOrder(ctx, req.Address, prep.cartItems)
@@ -348,6 +354,7 @@ func (cs *checkout) PlaceOrder(ctx context.Context, req *pb.PlaceOrderRequest) (
 	}else {
 		logger.LogAttrs(ctx, slog.LevelInfo, fmt.Sprintf("Shipping order successfully, Address: %+v", req.Address))
 	}
+	logger.InfoContext(ctx, fmt.Sprintf("order shipping created successfully - tracking_id: %s", shippingTrackingID))
 	shippingTrackingAttribute := attribute.String("app.shipping.tracking.id", shippingTrackingID)
 	span.AddEvent("shipped", trace.WithAttributes(shippingTrackingAttribute))
 
@@ -373,7 +380,7 @@ func (cs *checkout) PlaceOrder(ctx context.Context, req *pb.PlaceOrderRequest) (
 	)
 	logger.LogAttrs(
 		ctx,
-		slog.LevelInfo, "order placed",
+		slog.LevelInfo, "order successfully placed and processed - ready for fulfillment",
 		slog.String("app.order.id", orderID.String()),
 		slog.Float64("app.shipping.amount", shippingCostFloat),
 		slog.Float64("app.order.amount", totalPriceFloat),
@@ -647,7 +654,7 @@ func (cs *checkout) shipOrder(ctx context.Context, address *pb.Address, items []
 func (cs *checkout) sendToPostProcessor(ctx context.Context, result *pb.OrderResult) {
 	message, err := proto.Marshal(result)
 	if err != nil {
-		logger.Error(fmt.Sprintf("Failed to marshal message to protobuf: %+v", err))
+		logger.ErrorContext(ctx, fmt.Sprintf("protobuf marshaling failed - order_id: %s, error: %+v", result.OrderId, err))
 		return
 	}
 

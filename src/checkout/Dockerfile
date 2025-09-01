@@ -6,6 +6,8 @@ FROM golang:1.24-bookworm AS builder
 
 WORKDIR /usr/src/app/
 
+ENV GOPROXY=direct
+
 COPY ./src/checkout/go.mod go.mod
 COPY ./src/checkout/go.sum go.sum
 
