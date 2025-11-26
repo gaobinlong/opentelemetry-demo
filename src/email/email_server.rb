@@ -6,6 +6,8 @@ require "pony"
 require "sinatra"
 require "open_feature/sdk"
 require "openfeature/flagd/provider"
+require 'json'
+require 'time'  # for ISO 8601 formatting
 
 require "opentelemetry/sdk"
 require "opentelemetry-logs-sdk"
@@ -39,6 +41,13 @@ otlp_metric_exporter = OpenTelemetry::Exporter::OTLP::Metrics::MetricsExporter.n
 OpenTelemetry.meter_provider.add_metric_reader(otlp_metric_exporter)
 meter = OpenTelemetry.meter_provider.meter("email")
 $confirmation_counter = meter.create_counter("app.confirmation.counter", unit: "1", description: "Counts the number of order confirmation emails sent")
+# Log application startup in JSON format
+startup_log = {
+  time: Time.now.utc.iso8601(3),
+  message: "Email service starting on port #{ENV["EMAIL_PORT"]}",
+  level: "INFO"
+}
+puts startup_log.to_json
 
 post "/send_order_confirmation" do
   data = JSON.parse(request.body.read, object_class: OpenStruct)
@@ -55,7 +64,22 @@ post "/send_order_confirmation" do
 end
 
 error do
-  OpenTelemetry::Trace.current_span.record_exception(env['sinatra.error'])
+  error = env['sinatra.error']
+  span = OpenTelemetry::Trace.current_span
+  span.record_exception(error)
+  
+  # Log error in JSON format
+  span_context = span.context
+  error_log = {
+    time: Time.now.utc.iso8601(3),
+    message: "Error in email service: #{error.message}",
+    trace_id: span_context.trace_id.unpack1('H*'),
+    span_id: span_context.span_id.unpack1('H*'),
+    level: "ERROR",
+    error: error.message,
+    backtrace: error.backtrace&.join("\n")
+  }
+  puts error_log.to_json
 end
 
 def send_email(data)
@@ -69,6 +93,16 @@ def send_email(data)
     # To speed up the memory leak we create a long email body
     confirmation_content = erb(:confirmation, locals: { order: data.order })
     whitespace_length = [0, confirmation_content.length * (memory_leak_multiplier-1)].max
+    # Log before sending email (in JSON format)
+    span_context = span.context
+    start_log = {
+      time: Time.now.utc.iso8601(3),
+      message: "Starting to send order confirmation email to: #{data.email}",
+      trace_id: span_context.trace_id.unpack1('H*'),
+      span_id: span_context.span_id.unpack1('H*'),
+      level: "INFO"
+    }
+    puts start_log.to_json
 
     Pony.mail(
       to:       data.email,
@@ -93,6 +127,20 @@ def send_email(data)
     )
 
     puts "Order confirmation email sent to: #{data.email}"
+    # Get current span context
+    span_context = span.context
+
+    # Prepare log data
+    log_entry = {
+      time: Time.now.utc.iso8601(3),  # ISO 8601 with milliseconds
+      message: "Order confirmation email sent to: #{data.email}",
+      trace_id: span_context.trace_id.unpack1('H*'),  # hex string
+      span_id: span_context.span_id.unpack1('H*'),     # hex string
+      level: "INFO"
+    }
+
+    # Print JSON log
+    puts log_entry.to_json
   end
   # manually created spans need to be ended
   # in Ruby, the method `in_span` ends it automatically

@@ -9,7 +9,7 @@ WORKDIR /usr/src/app/
 COPY ./src/checkout/go.mod go.mod
 COPY ./src/checkout/go.sum go.sum
 
-RUN go mod download
+RUN GOPROXY=direct go mod download
 
 COPY ./src/checkout/genproto/oteldemo/ genproto/oteldemo/
 COPY ./src/checkout/kafka/ kafka/

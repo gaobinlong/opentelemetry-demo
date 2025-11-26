@@ -25,6 +25,20 @@ otel-logs-pipeline:
   source:
     pipeline:
       name: "otlp-pipeline"
+    otel_logs_source:
+      ssl: false
+  processor:
+    - add_entries:
+        entries:
+          - key: "log.attributes.serviceName"
+            value_expression: "/serviceName"
+            add_when: "/serviceName != null"
+    - add_entries:
+        entries:
+          - key: "serviceName"
+            value_expression: "/log.attributes.serviceName"
+            overwrite_if_key_exists: true
+            add_when: "/serviceName == null"
   buffer:
     bounded_blocking:
   sink:
@@ -33,7 +47,288 @@ otel-logs-pipeline:
         username: OPENSEARCH_USER
         password: OPENSEARCH_PASSWORD
         insecure: true
-        index_type: log-analytics-plain
+        index_type: custom
+        index: ss4o_logs-otel-%{yyyy.MM.dd}
+        bulk_size: 4
+        template_type: index-template
+        template_content: >
+          {
+            "index_patterns": [
+              "ss4o_logs-otel-*"
+            ],
+            "template": {
+              "mappings": {
+                "properties": {
+                  "body": {
+                    "type": "text"
+                  },
+                  "droppedAttributesCount": {
+                    "type": "long"
+                  },
+                  "flags": {
+                    "type": "long"
+                  },
+                  "instrumentationScope": {
+                    "properties": {
+                      "name": {
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "log": {
+                    "properties": {
+                      "attributes": {
+                        "properties": {
+                          "address": {
+                            "type": "keyword"
+                          },
+                          "amount": {
+                            "type": "keyword"
+                          },
+                          "cardType": {
+                            "type": "keyword"
+                          },
+                          "contentRoot": {
+                            "type": "keyword"
+                          },
+                          "context": {
+                            "type": "keyword"
+                          },
+                          "envName": {
+                            "type": "keyword"
+                          },
+                          "hostname": {
+                            "type": "keyword"
+                          },
+                          "lastFourDigits": {
+                            "type": "keyword"
+                          },
+                          "level": {
+                            "type": "keyword"
+                          },
+                          "otelServiceName": {
+                            "type": "keyword"
+                          },
+                          "otelSpanID": {
+                            "type": "keyword"
+                          },
+                          "otelTraceID": {
+                            "type": "keyword"
+                          },
+                          "otelTraceSampled": {
+                            "type": "boolean"
+                          },
+                          "pid": {
+                            "type": "long"
+                          },
+                          "productId": {
+                            "type": "keyword"
+                          },
+                          "quantity": {
+                            "type": "long"
+                          },
+                          "request": {
+                            "type": "text",
+                            "fields": {
+                              "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                              }
+                            }
+                          },
+                          "serviceName": {
+                            "type": "keyword"
+                          },
+                          "severity": {
+                            "type": "keyword"
+                          },
+                          "span_id": {
+                            "type": "keyword"
+                          },
+                          "time": {
+                            "type": "date",
+                            "format": "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'||yyyy-MM-dd'T'HH:mm:ss.SSS'Z'||strict_date_optional_time||epoch_millis"
+                          },
+                          "timestamp": {
+                            "type": "date",
+                            "format": "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'||yyyy-MM-dd'T'HH:mm:ss.SSS'Z'||strict_date_optional_time||epoch_millis"
+                          },
+                          "trace_flags": {
+                            "type": "keyword"
+                          },
+                          "trace_id": {
+                            "type": "keyword"
+                          },
+                          "transactionId": {
+                            "type": "keyword"
+                          },
+                          "userId": {
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "observedTime": {
+                    "type": "date"
+                  },
+                  "resource": {
+                    "properties": {
+                      "attributes": {
+                        "properties": {
+                          "container@id": {
+                            "type": "keyword"
+                          },
+                          "host@arch": {
+                            "type": "keyword"
+                          },
+                          "host@name": {
+                            "type": "keyword"
+                          },
+                          "os@description": {
+                            "type": "text",
+                            "fields": {
+                              "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                              }
+                            }
+                          },
+                          "os@name": {
+                            "type": "keyword"
+                          },
+                          "os@type": {
+                            "type": "keyword"
+                          },
+                          "os@version": {
+                            "type": "keyword"
+                          },
+                          "process@command": {
+                            "type": "text",
+                            "fields": {
+                              "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                              }
+                            }
+                          },
+                          "process@command_args": {
+                            "type": "text",
+                            "fields": {
+                              "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                              }
+                            }
+                          },
+                          "process@command_line": {
+                            "type": "text",
+                            "fields": {
+                              "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                              }
+                            }
+                          },
+                          "process@executable@path": {
+                            "type": "text",
+                            "fields": {
+                              "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                              }
+                            }
+                          },
+                          "process@owner": {
+                            "type": "keyword"
+                          },
+                          "process@pid": {
+                            "type": "long"
+                          },
+                          "process@runtime@description": {
+                            "type": "text",
+                            "fields": {
+                              "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                              }
+                            }
+                          },
+                          "process@runtime@name": {
+                            "type": "keyword"
+                          },
+                          "process@runtime@version": {
+                            "type": "keyword"
+                          },
+                          "service@name": {
+                            "type": "keyword"
+                          },
+                          "service@namespace": {
+                            "type": "keyword"
+                          },
+                          "service@version": {
+                            "type": "keyword"
+                          },
+                          "telemetry@auto@version": {
+                            "type": "keyword"
+                          },
+                          "telemetry@sdk@language": {
+                            "type": "keyword"
+                          },
+                          "telemetry@sdk@name": {
+                            "type": "keyword"
+                          },
+                          "telemetry@sdk@version": {
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "schemaUrl": {
+                    "type": "text",
+                    "fields": {
+                      "keyword": {
+                        "type": "keyword",
+                        "ignore_above": 256
+                      }
+                    }
+                  },
+                  "serviceName": {
+                    "type": "keyword"
+                  },
+                  "severityNumber": {
+                    "type": "long"
+                  },
+                  "severityText": {
+                    "type": "keyword"
+                  },
+                  "spanId": {
+                    "type": "keyword"
+                  },
+                  "time": {
+                    "type": "date",
+                    "format": "yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSS'Z'||yyyy-MM-dd'T'HH:mm:ss.SSS'Z'||strict_date_optional_time||epoch_millis"
+                  },
+                  "traceId": {
+                    "type": "keyword"
+                  }
+                }
+              },
+              "settings": {
+                "index": {
+                  "mapping": {
+                    "total_fields": {
+                      "limit": 10000
+                    }
+                  },
+                  "refresh_interval": "5s"
+                }
+              }
+            },
+            "composed_of": [],
+            "version": 1
+          }
 
 otel-traces-pipeline:
   delay: "100"

@@ -26,12 +26,12 @@ module.exports.charge = async request => {
 
   await OpenFeature.setProviderAndWait(flagProvider);
 
-  const numberVariant =  await OpenFeature.getClient().getNumberValue("paymentFailure", 0);
+  const numberVariant = await OpenFeature.getClient().getNumberValue("paymentFailure", 0);
 
   if (numberVariant > 0) {
     // n% chance to fail with app.loyalty.level=gold
     if (Math.random() < numberVariant) {
-      span.setAttributes({'app.loyalty.level': 'gold' });
+      span.setAttributes({ 'app.loyalty.level': 'gold' });
       span.end();
 
       throw new Error('Payment request failed. Invalid token. app.loyalty.level=gold');
@@ -80,6 +80,10 @@ module.exports.charge = async request => {
   }
 
   const { units, nanos, currencyCode } = request.amount;
+  if (units > 10000) {
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    logger.info('currency amount is too big, waiting for fraud detection...');
+  }
   logger.info({ transactionId, cardType, lastFourDigits, amount: { units, nanos, currencyCode }, loyalty_level }, 'Transaction complete.');
   transactionsCounter.add(1, { 'app.payment.currency': currencyCode });
   span.end();

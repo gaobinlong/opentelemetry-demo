@@ -50,7 +50,27 @@ services:
         condition: service_started
       kafka:
         condition: service_healthy
-    logging: *logging
+      fluentbit:
+        condition: service_started
+    links:
+      - fluentbit
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 127.0.0.1:24224
+        tag: accounting
+
+  # Fluent-bit logs shipper service
+  fluentbit:
+    container_name: fluentbit
+    image: fluent/fluent-bit:latest
+    volumes:
+      - ./src/fluent-bit:/fluent-bit/etc
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    environment:
+      - OTEL_COLLECTOR_HOST
 
   # AdService
   ad:
@@ -174,7 +194,16 @@ services:
         condition: service_healthy
       flagd:
         condition: service_started
-    logging: *logging
+      fluentbit:
+        condition: service_started
+    links:
+      - fluentbit
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 127.0.0.1:24224
+        tag: checkout
+    # logging: *logging
 
   # Currency service
   currency:
@@ -205,7 +234,15 @@ services:
     depends_on:
       otel-collector:
         condition: service_started
-    logging: *logging
+      fluentbit:
+        condition: service_started
+    links:
+      - fluentbit
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 127.0.0.1:24224
+        tag: currency
 
   # Email service
   email:
@@ -235,7 +272,15 @@ services:
     depends_on:
       otel-collector:
         condition: service_started
-    logging: *logging
+      fluentbit:
+        condition: service_started
+    links:
+      - fluentbit
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 127.0.0.1:24224
+        tag: email
 
   # Fraud Detection service
   fraud-detection:
@@ -268,7 +313,15 @@ services:
         condition: service_started
       kafka:
         condition: service_healthy
-    logging: *logging
+      fluentbit:
+        condition: service_started
+    links:
+      - fluentbit
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 127.0.0.1:24224
+        tag: frauddetection
 
   # Frontend
   frontend:
@@ -476,12 +529,16 @@ services:
       - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
       - OTEL_RESOURCE_ATTRIBUTES
       - OTEL_SERVICE_NAME=payment
+    links:
+      - fluentbit
     depends_on:
-      otel-collector:
-        condition: service_started
-      flagd:
-        condition: service_started
-    logging: *logging
+      - otel-collector
+      - fluentbit
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 127.0.0.1:24224
+        tag: payment
 
   # Product Catalog service
   product-catalog:
@@ -512,11 +569,15 @@ services:
     volumes:
       - ./src/product-catalog/products:/usr/src/app/products
     depends_on:
-      otel-collector:
+      fluentbit:
         condition: service_started
-      flagd:
-        condition: service_started
-    logging: *logging
+    links:
+      - fluentbit
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 127.0.0.1:24224
+        tag: productcatalog
 
   # Product reviews service
   product-reviews:
@@ -656,7 +717,15 @@ services:
     depends_on:
       otel-collector:
         condition: service_started
-    logging: *logging
+      fluentbit:
+          condition: service_started
+    links:
+      - fluentbit
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 127.0.0.1:24224
+        tag: shipping
 
   # ******************
   # Dependent Services
@@ -688,6 +757,7 @@ services:
   flagd-ui:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-flagd-ui
     container_name: flagd-ui
+    user: "0:0"
     build:
       context: ./
       dockerfile: ${FLAGD_UI_DOCKERFILE}
@@ -888,8 +958,8 @@ services:
     depends_on:
       jaeger:
         condition: service_started
-      opensearch:
-        condition: service_healthy
+      # opensearch:
+      #   condition: service_healthy
     logging: *logging
     environment:
       - FRONTEND_PROXY_ADDR
@@ -969,11 +1039,11 @@ services:
       retries: 30
     logging: *logging
 
-  #################################################################################################
-  # OpenSearch OTel Demo specifics
-  #################################################################################################
+  # #################################################################################################
+  # # OpenSearch OTel Demo specifics
+  # #################################################################################################
 
-  # OpenSearch Dashboards
+  # # OpenSearch Dashboards
   opensearch-dashboards:
     image: ${OPENSEARCH_DASHBOARDS_IMAGE}
     container_name: opensearch-dashboards
@@ -1015,8 +1085,8 @@ services:
       - ${DP_OTEL_TRACE_SOURCE_PORT}
       - ${DP_OTEL_LOGS_SOURCE_PORT}
     logging: *logging
-    depends_on:
-      opensearch:
-        condition: service_healthy
-      opensearch-dashboards:
-        condition: service_started
+    # depends_on:
+    #   opensearch:
+    #     condition: service_healthy
+    #   opensearch-dashboards:
+    #     condition: service_started

@@ -7,6 +7,11 @@
 #include <demo.grpc.pb.h>
 #include <grpc/health/v1/health.grpc.pb.h>
 
+#include <chrono>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+
 #include "opentelemetry/trace/context.h"
 #include "opentelemetry/semconv/incubating/rpc_attributes.h"
 #include "opentelemetry/trace/span_context_kv_iterable_view.h"
@@ -213,6 +218,35 @@ class CurrencyService final : public oteldemo::CurrencyService::Service
       logger->Info(std::string(__func__) + " conversion successful");
       
       // End the span
+      auto sc = span->GetContext();  // Use GetContext(), not SpanContext()
+      
+      std::array<char, 32> trace_id_buffer{};
+      sc.trace_id().ToLowerBase16(trace_id_buffer);
+      std::string trace_id_str(trace_id_buffer.data(), 32);
+
+      // SpanId is 8 bytes -> 16 hex chars
+      std::array<char, 16> span_id_buffer{};
+      sc.span_id().ToLowerBase16(span_id_buffer);
+      std::string span_id_str(span_id_buffer.data(), 16);
+
+      auto now = std::chrono::system_clock::now();
+      auto seconds = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) - std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch());
+      int ms_count = static_cast<int>(ms.count());
+
+      std::ostringstream oss;
+      oss << seconds << '.' << std::setw(3) << std::setfill('0') << ms_count;
+
+      std::string timestamp = oss.str();
+
+
+      std::string log_msg = std::string(__func__) + " conversion successful";
+      std::cout << "{"
+          << "\"time\": \"" << timestamp << "\", "
+          << "\"message\": \"" << log_msg << "\", "
+          << "\"trace_id\": \"" << trace_id_str << "\", "
+          << "\"span_id\": \"" << span_id_str << "\""
+          << "}" << std::endl;
       span->End();
       return Status::OK;
 
