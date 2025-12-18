@@ -137,6 +137,11 @@ exporters:
     tls:
       insecure: true
       insecure_skip_verify: true
+  otlp/metrics:
+    endpoint: "data-prepper:21891"
+    tls:
+      insecure: true
+      insecure_skip_verify: true
 
 processors:
   memory_limiter:
@@ -188,7 +193,7 @@ service:
     metrics:
       receivers: [docker_stats, httpcheck/frontend-proxy, hostmetrics, nginx, otlp, postgresql, redis, spanmetrics]
       processors: [resourcedetection, memory_limiter]
-      exporters: [otlphttp/prometheus, debug]
+      exporters: [otlphttp/prometheus, otlp/metrics, debug]
     logs:
       receivers: [otlp]
       processors: [resourcedetection, memory_limiter, transform]

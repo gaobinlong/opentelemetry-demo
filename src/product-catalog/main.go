@@ -59,10 +59,8 @@ var (
 )
 
 const DEFAULT_RELOAD_INTERVAL = 10
-
 func init() {
 	logger = otelslog.NewLogger("product-catalog")
-
 	loadProductCatalog()
 }
 
@@ -346,6 +344,11 @@ func (p *productCatalog) GetProduct(ctx context.Context, req *pb.GetProductReque
 		msg := fmt.Sprintf("Product Not Found: %s", req.Id)
 		span.SetStatus(otelcodes.Error, msg)
 		span.AddEvent(msg)
+		logger.LogAttrs(
+			ctx,
+			slog.LevelError, msg,
+			slog.String("app.product.id", req.Id),
+		)
 		return nil, status.Errorf(codes.NotFound, msg)
 	}
 
@@ -378,6 +381,11 @@ func (p *productCatalog) SearchProducts(ctx context.Context, req *pb.SearchProdu
 	span.SetAttributes(
 		attribute.Int("app.products_search.count", len(result)),
 	)
+	logger.LogAttrs(
+		ctx,
+		slog.LevelInfo, "search products",
+		slog.Int("count", len(result)),
+	)
 	return &pb.SearchProductsResponse{Results: result}, nil
 }
 
@@ -387,9 +395,22 @@ func (p *productCatalog) checkProductFailure(ctx context.Context, id string) boo
 	}
 
 	client := openfeature.NewClient("productCatalog")
-	failureEnabled, _ := client.BooleanValue(
+	failureEnabled, err := client.BooleanValue(
 		ctx, "productCatalogFailure", false, openfeature.EvaluationContext{},
 	)
+	
+	if err != nil {
+		span := trace.SpanFromContext(ctx)
+		span.AddEvent("error", trace.WithAttributes(attribute.String("message", fmt.Sprintf("GetFlag Failed: %s", "productCatalogFailure"))))
+		logger.LogAttrs(
+			ctx,
+			slog.LevelError, "GetFlag Failed",
+			slog.String("flag_name", "productCatalogFailure"),
+			slog.String("error", err.Error()),
+		)
+		return false
+	}
+	
 	return failureEnabled
 }
 
