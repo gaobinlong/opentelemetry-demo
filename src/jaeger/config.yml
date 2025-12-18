@@ -36,6 +36,7 @@ extensions:
     backends:
       opensearch_backend:
         elasticsearch:
+          # Need update if want to write data to a third-party OpenSearch cluster
           server_urls: ["https://${env:OPENSEARCH_USER}:${env:OPENSEARCH_PASSWORD_ENCODED}@${env:OPENSEARCH_HOST}:${env:OPENSEARCH_PORT}"]
           tls:
             insecure: true

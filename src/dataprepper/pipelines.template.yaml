@@ -29,6 +29,7 @@ otel-logs-pipeline:
     bounded_blocking:
   sink:
     - opensearch:
+        # Need update if want to write data to a third-party OpenSearch cluster
         hosts: OPENSEARCH_HOSTS
         username: OPENSEARCH_USER
         password: OPENSEARCH_PASSWORD
@@ -54,6 +55,7 @@ traces-raw-pipeline:
     - otel_trace_raw:
   sink:
     - opensearch:
+        # Need update if want to write data to a third-party OpenSearch cluster
         hosts: OPENSEARCH_HOSTS
         username: OPENSEARCH_USER
         password: OPENSEARCH_PASSWORD
@@ -69,6 +71,7 @@ service-map-pipeline:
     - service_map_stateful:
   sink:
     - opensearch:
+        # Need update if want to write data to a third-party OpenSearch cluster
         hosts: OPENSEARCH_HOSTS
         username: OPENSEARCH_USER
         password: OPENSEARCH_PASSWORD
@@ -94,6 +97,7 @@ otel-metrics-pipeline:
         flatten_attributes: false
   sink:
     - opensearch:
+        # Need update if want to write data to a third-party OpenSearch cluster
         hosts: OPENSEARCH_HOSTS
         username: OPENSEARCH_USER
         password: OPENSEARCH_PASSWORD
