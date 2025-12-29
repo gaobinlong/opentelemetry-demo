@@ -105,6 +105,18 @@
       },
       "defaultVariant": "off"
     },
+    "paymentRejectCurrency": {
+      "description": "Reject payment service charge requests for a specific currency",
+      "state": "ENABLED",
+      "variants": {
+        "CNY": "CNY",
+        "USD": "USD",
+        "CAD": "CAD",
+        "EUR": "EUR",
+        "OFF": "OFF"
+      },
+      "defaultVariant": "OFF"
+    },
     "loadGeneratorFloodHomepage": {
       "description": "Flood the frontend with a large amount of requests.",
       "state": "ENABLED",

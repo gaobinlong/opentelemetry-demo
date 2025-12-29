@@ -151,5 +151,39 @@
             "creditCardExpirationYear": 2039,
             "creditCardCvv": 682
         }
+    },
+    {
+        "email": "xiaoming@example.com",
+        "address": {
+            "streetAddress": "150 Elgin St",
+            "zipCode": "201234",
+            "city": "Shanghai",
+            "state": "",
+            "country": "China"
+        },
+        "userCurrency": "CNY",
+        "creditCard": {
+            "creditCardNumber": "4763-1844-9699-8031",
+            "creditCardExpirationMonth": 7,
+            "creditCardExpirationYear": 2039,
+            "creditCardCvv": 488
+        }
+    },
+    {
+        "email": "alex@example.com",
+        "address": {
+            "streetAddress": "Rue de la Loi 200",
+            "zipCode": "1049",
+            "city": "Brussels",
+            "state": "",
+            "country": "Belgium"
+        },
+        "userCurrency": "EUR",
+        "creditCard": {
+            "creditCardNumber": "4532-8015-3344-5512",
+            "creditCardExpirationMonth": 7,
+            "creditCardExpirationYear": 2039,
+            "creditCardCvv": 488
+        }
     }
 ]
